@@ -2,135 +2,75 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
+	"errors"
+	"fmt"
+	"html/template"
 	"log"
 	"net/http"
-	"strconv"
-	"text/template"
+	"os"
+	"path/filepath"
+
+	"github.com/joho/godotenv"
+	_ "github.com/lib/pq"
 )
 
 /*** data ***/
 
-type Task struct {
-	ID uint
-	Title string
-}
-
-var id uint = 1
-var tasks = []Task{
-	{ID: id, Title: "An example task"},
-}
+var db *sql.DB
 
 /*** operations ***/
 
-func addTask(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Println("failed to parse form", err.Error())
-		return
-	}
+/*** views ***/
 
-	id++ // Yes I'm lazy, this is not a proper ID :)
-	tasks = append(tasks, Task{ID: id, Title: r.Form.Get("title")})
-
-	t, err := template.New("tasks").Parse(`
-		{{range .Tasks}}
-			<input name="title" type="text" value="{{.Title}}" hx-put="/update?id={{.ID}}" hx-trigger="keyup changed delay:2000ms" hx-target="#tasks" hx-swap="innerHTML">
-			<button hx-delete="/delete?id={{.ID}}" hx-trigger="click" hx-target="#tasks" hx-swap="innerHTML">
-				Remove task!
-			</button>
-			<br />
-		{{end}}
-	`)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to parse tpl", err.Error())
-		return
-	}
-
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, struct{Tasks []Task}{Tasks: tasks})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to execute tpl", err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(buf.Bytes())
-}
-
-func updateTask(w http.ResponseWriter, r *http.Request) {
-	err := r.ParseForm()
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		log.Println("failed to parse form", err.Error())
-		return
-	}
-
-	for idx, v := range tasks {
-		if strconv.Itoa(int(v.ID)) == r.URL.Query().Get("id") {
-			tasks[idx].Title = r.Form.Get("title")
-			break;
+func admin(w http.ResponseWriter, r *http.Request) {
+	// TODO: Check cookie value
+	_, err := r.Cookie("simple_stack_token")
+	if errors.Is(err, http.ErrNoCookie) {
+		t, err := template.New("login").ParseFiles(
+			filepath.Join("views", "layouts", "admin_header.tmpl"),
+			filepath.Join("views", "layouts", "navbar.tmpl"),
+			filepath.Join("views", "layouts", "footer.tmpl"),
+			filepath.Join("views", "admin", "login.tmpl"),
+		)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to parse templates: %v\n", err)
+			return
 		}
-	}
 
-	t, err := template.New("tasks").Parse(`
-		{{range .Tasks}}
-			<input name="title" type="text" value="{{.Title}}" hx-put="/update?id={{.ID}}" hx-trigger="keyup changed delay:2000ms" hx-target="#tasks" hx-swap="innerHTML">
-			<button hx-delete="/delete?id={{.ID}}" hx-trigger="click" hx-target="#tasks" hx-swap="innerHTML">
-				Remove task!
-			</button>
-			<br />
-		{{end}}
-	`)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to parse tpl", err.Error())
-		return
-	}
-
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, struct{Tasks []Task}{Tasks: tasks})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to execute tpl", err.Error())
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(buf.Bytes())
-}
-
-func deleteTask(w http.ResponseWriter, r *http.Request) {
-	for idx, v := range tasks {
-		if strconv.Itoa(int(v.ID)) == r.URL.Query().Get("id") {
-			// Yeet it out of existence
-			tasks = append(tasks[:idx], tasks[idx+1:]...)
-			break;
+		var buf bytes.Buffer
+		if err = t.Execute(&buf, nil); err != nil {
+			http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to execute template: %v\n", err)
+			return
 		}
-	}
 
-	t, err := template.New("tasks").Parse(`
-		{{range .Tasks}}
-			<input name="title" type="text" value="{{.Title}}" hx-put="/update?id={{.ID}}" hx-trigger="keyup changed delay:2000ms" hx-target="#tasks" hx-swap="innerHTML">
-			<button hx-delete="/delete?id={{.ID}}" hx-trigger="click" hx-target="#tasks" hx-swap="innerHTML">
-				Remove task!
-			</button>
-			<br />
-		{{end}}
-	`)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to parse tpl", err.Error())
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(buf.Bytes())
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to get cookie: %v\n", err)
 		return
 	}
 
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, struct{Tasks []Task}{Tasks: tasks})
+	t, err := template.New("dashboard").ParseFiles(
+		filepath.Join("views", "layouts", "admin_header.tmpl"),
+		filepath.Join("views", "layouts", "navbar.tmpl"),
+		filepath.Join("views", "layouts", "footer.tmpl"),
+		filepath.Join("views", "admin", "dashboard.tmpl"),
+	)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to execute tpl", err.Error())
+		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to parse templates: %v\n", err)
+		return
+	}
+
+	var buf bytes.Buffer
+	if err = t.Execute(&buf, nil); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to execute template: %v\n", err)
 		return
 	}
 
@@ -139,42 +79,22 @@ func deleteTask(w http.ResponseWriter, r *http.Request) {
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
-	t, err := template.New("tasks").Parse(`
-		<!DOCTYPE html>
-		<html>
-			<head>
-				<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
-			</head>
-			<body>
-				<div id="tasks">
-					{{range .Tasks}}
-						<input name="title" type="text" value="{{.Title}}" hx-put="/update?id={{.ID}}" hx-trigger="keyup changed delay:2000ms" hx-target="#tasks" hx-swap="innerHTML">
-						<button hx-delete="/delete?id={{.ID}}" hx-trigger="click" hx-target="#tasks" hx-swap="innerHTML">
-							Remove task!
-						</button>
-						<br />
-						{{else}}
-						<h4>No tasks found</h4>
-					{{end}}
-				</div>
-				<form hx-post="/add" hx-target="#tasks" hx-swap="innerHTML">
-					<input id="title" name="title" type="text">
-					<input type="submit" value="Add task!">
-				</form>
-			<body>
-		</html>
-	`)
+	t, err := template.New("index").ParseFiles(
+		filepath.Join("views", "layouts", "header.tmpl"),
+		filepath.Join("views", "layouts", "navbar.tmpl"),
+		filepath.Join("views", "layouts", "footer.tmpl"),
+		filepath.Join("views", "index.tmpl"),
+	)
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to parse tpl", err.Error())
+		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to parse templates: %v\n", err)
 		return
 	}
 
-	buf := &bytes.Buffer{}
-	err = t.Execute(buf, struct{Tasks []Task}{Tasks: tasks})
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		log.Println("failed to execute tpl", err.Error())
+	var buf bytes.Buffer
+	if err = t.Execute(&buf, nil); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to execute template: %v\n", err)
 		return
 	}
 
@@ -184,11 +104,29 @@ func index(w http.ResponseWriter, r *http.Request) {
 
 /*** init ***/
 
+func init() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatalf("[ERROR] failed to load .env file: %v\n", err)
+	}
+
+	var connStr string = fmt.Sprintf("postgresql://%s:%s@tcp/%s?sslmode=disable",
+		os.Getenv("PQ_USER"), os.Getenv("PQ_PASS"), os.Getenv("PQ_NAME"))
+
+	db, err = sql.Open("postgres", connStr)
+	if err != nil {
+		log.Fatalf("[ERROR] failed to initialize db: %v\n", err)
+	}
+	log.Println("[INFO] successfully connected to db")
+}
+
 func main() {
 	mux := http.NewServeMux()
+	
+	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 	mux.HandleFunc("/", index)
-	mux.HandleFunc("/add", addTask)
-	mux.HandleFunc("/update", updateTask)
-	mux.HandleFunc("/delete", deleteTask)
-	http.ListenAndServe(":8080", mux)
+	mux.HandleFunc(fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")), admin)
+
+	log.Printf("[INFO] started http server at port %s\n", os.Getenv("PORT"))
+	http.ListenAndServe(os.Getenv("PORT"), mux)
 }
