@@ -1,0 +1,29 @@
+{{define "articles"}}
+	{{range .Articles}}
+	<div class="card mb-3">
+		{{if $.IsAdmin}}
+		<div class="card-header">
+			{{if eq .Status "unpublished"}}
+			<a href="#" class="text-light">Publish</a> |
+			{{else}}
+			<a href="#" class="text-light">Unpublish</a> |
+			{{end}}
+			<a href="#" class="text-light">Edit</a> |
+			<a href="#" class="text-light">Delete</a>
+		</div>
+		{{end}}
+		<div class="card-body">
+			<h2>{{.Title}}</h2> 
+			<p>{{.Excerpt}}</p>
+			<p>
+				<small>
+					Published by {{.Author}} on {{.CreatedAt}} {{if .UpdatedAt}}| Updated on {{.UpdatedAt}}{{end}}
+				</small>
+			</p>
+		</div>
+	</div>
+	{{else}}
+	<h1>No articles found</h1>
+	<h4>The articles that you create will be shown here</h4>
+	{{end}}
+{{end}}

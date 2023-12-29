@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -21,6 +22,73 @@ import (
 var db *sql.DB
 
 /*** endpoints ***/
+
+func getArticles(w http.ResponseWriter, r *http.Request) {
+	// mocked db call
+	type Article struct {
+		// Think more deeply about the data that an article should hold
+		ID string
+		Title string
+		Author string
+		Excerpt string
+		CreatedAt string
+		UpdatedAt string
+		Status string
+	}
+
+	articles := []Article{
+		{ID: "rand-id-1", Title: "An example title", Author: "Kevin Suñer", Excerpt: "Lorem ipsum dolor sit amet, qui minim labore adipisicing minim sint cillum sint consectetur cupidatat.", CreatedAt: time.Now().Format(time.ANSIC), Status: "unpublished"},
+		{ID: "rand-id-2", Title: "Another example title", Author: "Kevin Suñer", Excerpt: "Lorem ipsum dolor sit amet, qui minim labore adipisicing minim sint cillum sint consectetur cupidatat.", CreatedAt: time.Now().Format(time.ANSIC), UpdatedAt: time.Now().Format(time.ANSIC), Status: "published"},
+	}
+
+	var isAdmin bool
+	if len(r.URL.Query().Get("admin")) > 0 {
+		val, err := strconv.ParseBool(r.URL.Query().Get("admin"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse bool: %v", err), http.StatusBadRequest)
+			log.Printf("[ERROR] failed to parse bool: %v\n", err)
+			return
+		}
+
+		if val {
+			cookie, err := r.Cookie("simple_stack_token")
+			if errors.Is(err, http.ErrNoCookie) {
+				http.Error(w, fmt.Sprintf("failed to authenticate"), http.StatusUnauthorized)
+				log.Println("[ERROR] failed to authenticate")
+				return
+			} else if err != nil {
+				http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to get cookie: %v\n", err)
+				return
+			}
+
+			if cookie.Value == os.Getenv("SIMPLE_STACK_TOKEN") {
+				isAdmin = true
+			} else {
+				http.Error(w, fmt.Sprintf("failed to authenticate"), http.StatusUnauthorized)
+				log.Println("[ERROR] failed to authenticate")
+				return
+			}
+		}
+	}
+
+	t, err := template.New("articles").ParseFiles(filepath.Join("views", "articles", "articles.tmpl"))
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse template: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to parse template: %v\n", err)
+		return
+	}
+
+	var buf bytes.Buffer
+	if err = t.Execute(&buf, struct{Articles []Article; IsAdmin bool}{Articles: articles, IsAdmin: isAdmin}); err != nil {
+		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to execute template: %v\n", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write(buf.Bytes())
+}
 
 func login(w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
@@ -160,6 +228,7 @@ func main() {
 	
 	/*** endpoints ***/
 	mux.HandleFunc("/login", login)
+	mux.HandleFunc("/get/articles", getArticles)
 	
 	/*** views ***/
 	mux.HandleFunc("/", index)
