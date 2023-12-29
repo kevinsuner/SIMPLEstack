@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -19,13 +20,38 @@ import (
 
 var db *sql.DB
 
-/*** operations ***/
+/*** endpoints ***/
+
+func login(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, fmt.Sprintf("failed to parse form: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to parse form: %v\n", err)
+		return
+	}
+
+	if r.Form.Get("username") == os.Getenv("USER_NAME") &&
+		r.Form.Get("password") == os.Getenv("USER_PASS") {
+		cookie := http.Cookie{}
+		cookie.Name = "simple_stack_token"
+		cookie.Value = os.Getenv("SIMPLE_STACK_TOKEN")
+		cookie.Expires = time.Now().Add(time.Hour * 1)
+		cookie.Secure = true
+		cookie.HttpOnly = true
+		cookie.Path = "/"
+		http.SetCookie(w, &cookie)
+		w.Header().Add("HX-Redirect", fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")))
+		return
+	} else {
+		http.Error(w, fmt.Sprintf("failed to authenticate"), http.StatusUnauthorized)
+		log.Println("[ERROR] failed to authenticate")
+		return
+	}
+}
 
 /*** views ***/
 
 func admin(w http.ResponseWriter, r *http.Request) {
-	// TODO: Check cookie value
-	_, err := r.Cookie("simple_stack_token")
+	cookie, err := r.Cookie("simple_stack_token")
 	if errors.Is(err, http.ErrNoCookie) {
 		t, err := template.New("login").ParseFiles(
 			filepath.Join("views", "layouts", "admin_header.tmpl"),
@@ -55,27 +81,34 @@ func admin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := template.New("dashboard").ParseFiles(
-		filepath.Join("views", "layouts", "admin_header.tmpl"),
-		filepath.Join("views", "layouts", "navbar.tmpl"),
-		filepath.Join("views", "layouts", "footer.tmpl"),
-		filepath.Join("views", "admin", "dashboard.tmpl"),
-	)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
-		log.Printf("[ERROR] failed to parse templates: %v\n", err)
+	if cookie.Value == os.Getenv("SIMPLE_STACK_TOKEN") {
+		t, err := template.New("dashboard").ParseFiles(
+			filepath.Join("views", "layouts", "admin_header.tmpl"),
+			filepath.Join("views", "layouts", "navbar.tmpl"),
+			filepath.Join("views", "layouts", "footer.tmpl"),
+			filepath.Join("views", "admin", "dashboard.tmpl"),
+		)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to parse templates: %v\n", err)
+			return
+		}
+
+		var buf bytes.Buffer
+		if err = t.Execute(&buf, nil); err != nil {
+			http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to execute template: %v\n", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(buf.Bytes())
+		return
+	} else {
+		http.Error(w, fmt.Sprintf("failed to authenticate"), http.StatusUnauthorized)
+		log.Println("[ERROR] failed to authenticate")
 		return
 	}
-
-	var buf bytes.Buffer
-	if err = t.Execute(&buf, nil); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-		log.Printf("[ERROR] failed to execute template: %v\n", err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(buf.Bytes())
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
@@ -124,6 +157,11 @@ func main() {
 	mux := http.NewServeMux()
 	
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	
+	/*** endpoints ***/
+	mux.HandleFunc("/login", login)
+	
+	/*** views ***/
 	mux.HandleFunc("/", index)
 	mux.HandleFunc(fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")), admin)
 

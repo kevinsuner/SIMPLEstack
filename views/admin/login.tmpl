@@ -2,17 +2,16 @@
 {{template "admin_header" .}}
 {{template "navbar" .}}
 <div class="container">
-	<!-- TOOD: this should only be displayed in the absence of a TOKEN cookie -->
 	<div id="login-form" class="card mt-5">
 		<div class="card-body">
-			<form>
+			<form hx-post="/login">
 				<div class="mb-3">
 					<label for="username-input" class="form-label">Username</label>
-					<input type="text" class="form-control" id="username-input">
+					<input name="username" type="text" class="form-control" id="username-input">
 				</div>
 				<div class="mb-3">
 					<label for="password-input" class="form-label">Password</label>
-					<input type="password" class="form-control" id="password-input">
+					<input name="password" type="password" class="form-control" id="password-input">
 				</div>
 				<button type="submit" class="btn btn-primary">Login</button>
 			</form>
