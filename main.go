@@ -21,24 +21,52 @@ import (
 
 var db *sql.DB
 
+/*** models ***/
+
+type Article struct {
+	ID uint
+	CreatedAt string
+	UpdatedAt string
+	Title string
+	Excerpt string
+	Author string
+	Status string
+	Content string
+}
+
 /*** endpoints ***/
 
 func getArticles(w http.ResponseWriter, r *http.Request) {
-	// mocked db call
-	type Article struct {
-		// Think more deeply about the data that an article should hold
-		ID string
-		Title string
-		Author string
-		Excerpt string
-		CreatedAt string
-		UpdatedAt string
-		Status string
+	rows, err := db.Query("SELECT * FROM articles")
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to select articles: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to select articles: %v\n", err)
+		return
 	}
+	defer rows.Close()
 
-	articles := []Article{
-		{ID: "rand-id-1", Title: "An example title", Author: "Kevin Suñer", Excerpt: "Lorem ipsum dolor sit amet, qui minim labore adipisicing minim sint cillum sint consectetur cupidatat.", CreatedAt: time.Now().Format(time.ANSIC), Status: "unpublished"},
-		{ID: "rand-id-2", Title: "Another example title", Author: "Kevin Suñer", Excerpt: "Lorem ipsum dolor sit amet, qui minim labore adipisicing minim sint cillum sint consectetur cupidatat.", CreatedAt: time.Now().Format(time.ANSIC), UpdatedAt: time.Now().Format(time.ANSIC), Status: "published"},
+	var articles []Article
+	for rows.Next() {
+		var article Article
+		if err = rows.Scan(
+			&article.ID,
+			&article.CreatedAt,
+			&article.UpdatedAt,
+			&article.Title,
+			&article.Excerpt,
+			&article.Author,
+			&article.Status,
+			&article.Content); err != nil {
+			http.Error(w, fmt.Sprintf("failed to scan value: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to scan rows: %v\n", err)
+			return
+		}
+		articles = append(articles, article)
+	}
+	if err = rows.Err(); err != nil {
+		http.Error(w, fmt.Sprintf("failed while iterating: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed while iterating: %v\n", err)
+		return
 	}
 
 	var isAdmin bool
@@ -80,7 +108,8 @@ func getArticles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	if err = t.Execute(&buf, struct{Articles []Article; IsAdmin bool}{Articles: articles, IsAdmin: isAdmin}); err != nil {
+	data := struct{Articles []Article; IsAdmin bool}{Articles: articles, IsAdmin: isAdmin}
+	if err = t.Execute(&buf, data); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		log.Printf("[ERROR] failed to execute template: %v\n", err)
 		return
@@ -211,8 +240,8 @@ func init() {
 		log.Fatalf("[ERROR] failed to load .env file: %v\n", err)
 	}
 
-	var connStr string = fmt.Sprintf("postgresql://%s:%s@tcp/%s?sslmode=disable",
-		os.Getenv("PQ_USER"), os.Getenv("PQ_PASS"), os.Getenv("PQ_NAME"))
+	var connStr string = fmt.Sprintf("postgresql://%s:%s@%s/%s?sslmode=disable",
+		os.Getenv("PQ_USER"), os.Getenv("PQ_PASS"), os.Getenv("PQ_IP"), os.Getenv("PQ_NAME"))
 
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
