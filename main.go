@@ -36,6 +36,48 @@ type Article struct {
 
 /*** endpoints ***/
 
+func deleteArticle(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("simple_stack_token")
+	if errors.Is(err, http.ErrNoCookie) {
+		http.Error(w, fmt.Sprintf("failed to authenticate: %v", err), http.StatusUnauthorized)
+		log.Printf("[ERROR] failed to authenticate: %v\n", err)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to get cookie: %v\n", err)
+		return
+	}
+
+	if cookie.Value == os.Getenv("SIMPLE_STACK_TOKEN") {
+		if len(r.URL.Query().Get("id")) > 0 {
+			id, err := strconv.Atoi(r.URL.Query().Get("id"))		
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to parse id: %v", err), http.StatusBadRequest)
+				log.Printf("[ERROR] failed to parse id: %v\n", err)
+				return
+			}
+
+			_, err = db.Exec("DELETE FROM articles WHERE id = $1", id)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to delete article: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to delete article: %v\n", err)
+				return
+			}
+
+			w.Header().Add("HX-Redirect", fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")))
+			return
+		} else {
+			http.Error(w, "failed due to an id of zero length", http.StatusBadRequest)
+			log.Println("[ERROR] failed due to an id of zero length")
+			return
+		}
+	} else {
+		http.Error(w, "failed to authenticate", http.StatusUnauthorized)
+		log.Println("[ERROR] failed to authenticate", err)
+		return
+	}
+}
+
 func putArticle(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("simple_stack_token")
 	if errors.Is(err, http.ErrNoCookie) {
@@ -87,8 +129,8 @@ func putArticle(w http.ResponseWriter, r *http.Request) {
 				`UPDATE articles SET updated_at=$1, title=$2, excerpt=$3, author=$4, status=$5, content=$6 WHERE id = $7`,
 				time.Now().Format(time.ANSIC), title, excerpt, author, status, content, id)
 			if err != nil {
-				http.Error(w, fmt.Sprintf("failed to insert article: %v", err), http.StatusInternalServerError)
-				log.Printf("[ERROR] failed to insert article: %v\n", err)
+				http.Error(w, fmt.Sprintf("failed to update article: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to update article: %v\n", err)
 				return
 			}
 
@@ -502,6 +544,7 @@ func main() {
 	mux.HandleFunc("/get/articles", getArticles)
 	mux.HandleFunc("/post/article", postArticle)
 	mux.HandleFunc("/put/article", putArticle)
+	mux.HandleFunc("/delete/article", deleteArticle)
 	
 	/*** views ***/
 	mux.HandleFunc("/", index)

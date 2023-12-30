@@ -3,13 +3,8 @@
 	<div class="card mb-4">
 		{{if $.IsAdmin}}
 		<div class="card-header">
-			{{if eq .Status "unpublished"}}
-			<a href="#" class="link-light link-underline-opacity-0">Publish</a> |
-			{{else}}
-			<a href="#" class="link-light link-underline-opacity-0">Unpublish</a> |
-			{{end}}
 			<a href="/update/article?id={{.ID}}" class="link-light link-underline-opacity-0">Update</a> |
-			<a href="#" class="link-light link-underline-opacity-0">Delete</a>
+			<a hx-delete="/delete/article?id={{.ID}}" class="link-light link-underline-opacity-0" style="cursor: grab;">Delete</a>
 		</div>
 		{{end}}
 		<div class="card-body">
