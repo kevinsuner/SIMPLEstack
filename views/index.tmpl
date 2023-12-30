@@ -2,11 +2,9 @@
 {{template "header" .}}
 {{template "navbar" .}}
 <div class="container">
-	<div class="mt-5 text-center">
-		<!-- TOOD: this should only be displayed in the absence of articles -->
-		<h1>¡Oopsie Daisy!<h1>
-		<h4>The articles that you publish will be shown here, meanwhile here's a fun-fact</h4>
-		<p>An English computer scientist, Alan Turing, managed to decipher Nazis’ code machine ENIGMA thanks to his cryptologic and mathematical skills. The information he and his team at Bletchley Park provided saved many lives. His contribution to modern computing was rewarded by naming the annual prize given by the Association for Computing Machinery (ACM) the Turing Award. This award is presented to “an individual selected for contributions of a technical nature made to the computing community.”</p>
+	<div class="mt-5" hx-get="/get/articles" hx-trigger="load" hx-target="this" hx-swap="innerHTML">
+		<h1>No articles found<h1>
+		<h4>The articles that you publish will be shown here</h4>
 	</div>
 </div>
 {{template "footer" .}}
