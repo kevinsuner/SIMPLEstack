@@ -36,6 +36,76 @@ type Article struct {
 
 /*** endpoints ***/
 
+func putArticle(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("simple_stack_token")
+	if errors.Is(err, http.ErrNoCookie) {
+		http.Error(w, fmt.Sprintf("failed to authenticate: %v", err), http.StatusUnauthorized)
+		log.Printf("[ERROR] failed to authenticate: %v\n", err)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to get cookie: %v\n", err)
+		return
+	}
+
+	if cookie.Value == os.Getenv("SIMPLE_STACK_TOKEN") {
+		if len(r.URL.Query().Get("id")) > 0 {
+			id, err := strconv.Atoi(r.URL.Query().Get("id"))		
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to parse id: %v", err), http.StatusBadRequest)
+				log.Printf("[ERROR] failed to parse id: %v\n", err)
+				return
+			}
+
+			if err = r.ParseForm(); err != nil {
+				http.Error(w, fmt.Sprintf("failed to parse form: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to parse form: %v\n", err)
+				return
+			}
+
+			checkEmpty := func(str ...string) error {
+				for _, s := range str {
+					if s == "" {
+						return errors.New("empty string")
+					}
+				}
+				return nil
+			}
+
+			title := r.Form.Get("title")
+			excerpt := r.Form.Get("excerpt")
+			author := r.Form.Get("author")
+			status := r.Form.Get("status")
+			content := r.Form.Get("content")
+			if err = checkEmpty(title, excerpt, author, status, content); err != nil {
+				http.Error(w, fmt.Sprintf("failed to validate form values: %v", err), http.StatusBadRequest)
+				log.Printf("[ERROR] failed to validate form values: %v\n", err)
+				return
+			}
+
+			_, err = db.Exec(
+				`UPDATE articles SET updated_at=$1, title=$2, excerpt=$3, author=$4, status=$5, content=$6 WHERE id = $7`,
+				time.Now().Format(time.ANSIC), title, excerpt, author, status, content, id)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to insert article: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to insert article: %v\n", err)
+				return
+			}
+
+			w.Header().Add("HX-Redirect", fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")))
+			return
+		} else {
+			http.Error(w, "failed due to an id of zero length", http.StatusBadRequest)
+			log.Println("[ERROR] failed due to an id of zero length")
+			return
+		}
+	} else {
+		http.Error(w, "failed to authenticate", http.StatusUnauthorized)
+		log.Println("[ERROR] failed to authenticate", err)
+		return
+	}
+}
+
 func postArticle(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("simple_stack_token")
 	if errors.Is(err, http.ErrNoCookie) {
@@ -204,6 +274,78 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 /*** views ***/
 
+func updateArticle(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("simple_stack_token")
+	if errors.Is(err, http.ErrNoCookie) {
+		http.Error(w, fmt.Sprintf("failed to authenticate: %v", err), http.StatusUnauthorized)
+		log.Printf("[ERROR] failed to authenticate: %v\n", err)
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
+		log.Printf("[ERROR] failed to get cookie: %v\n", err)
+		return
+	}
+
+	if cookie.Value == os.Getenv("SIMPLE_STACK_TOKEN") {
+		if len(r.URL.Query().Get("id")) > 0 {
+			id, err := strconv.Atoi(r.URL.Query().Get("id"))		
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to parse id: %v", err), http.StatusBadRequest)
+				log.Printf("[ERROR] failed to parse id: %v\n", err)
+				return
+			}
+
+			var article Article
+			err = db.QueryRow(
+				`SELECT id, title, excerpt, author, status, content FROM articles WHERE id = $1`, id).Scan(
+				&article.ID,
+				&article.Title,
+				&article.Excerpt,
+				&article.Author,
+				&article.Status,
+				&article.Content,
+			)
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to query article: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to query article: %v\n", err)
+				return
+			}
+
+			t, err := template.New("update_article").ParseFiles(
+				filepath.Join("views", "layouts", "admin_header.tmpl"),
+				filepath.Join("views", "layouts", "navbar.tmpl"),
+				filepath.Join("views", "layouts", "footer.tmpl"),
+				filepath.Join("views", "admin", "update_article.tmpl"),
+			)
+
+			if err != nil {
+				http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to parse templates: %v\n", err)
+				return
+			}
+
+			var buf bytes.Buffer
+				if err = t.Execute(&buf, article); err != nil {
+				http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+				log.Printf("[ERROR] failed to execute template: %v\n", err)
+				return
+			}
+
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Write(buf.Bytes())
+			return
+		} else {
+			http.Error(w, "failed due to an id of zero length", http.StatusBadRequest)
+			log.Println("[ERROR] failed due to an id of zero length")
+			return
+		}
+	} else {
+		http.Error(w, "failed to authenticate", http.StatusUnauthorized)
+		log.Println("[ERROR] failed to authenticate")
+		return
+	}
+}
+
 func createArticle(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("simple_stack_token")
 	if errors.Is(err, http.ErrNoCookie) {
@@ -359,11 +501,13 @@ func main() {
 	mux.HandleFunc("/login", login)
 	mux.HandleFunc("/get/articles", getArticles)
 	mux.HandleFunc("/post/article", postArticle)
+	mux.HandleFunc("/put/article", putArticle)
 	
 	/*** views ***/
 	mux.HandleFunc("/", index)
 	mux.HandleFunc(fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")), admin)
 	mux.HandleFunc("/create/article", createArticle)
+	mux.HandleFunc("/update/article", updateArticle)
 
 	log.Printf("[INFO] started http server at port %s\n", os.Getenv("PORT"))
 	http.ListenAndServe(os.Getenv("PORT"), mux)
