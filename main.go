@@ -11,8 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
+	"github.com/yuin/goldmark"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 )
@@ -320,6 +322,63 @@ func login(w http.ResponseWriter, r *http.Request) {
 
 /*** views ***/
 
+func getArticle(w http.ResponseWriter, r *http.Request) {
+	slug := strings.TrimPrefix(r.URL.Path, "/article/")
+	if len(slug) > 0 {
+		var article Article
+		err := db.QueryRow(
+			`SELECT created_at, updated_at, title, excerpt, author, status, content FROM articles WHERE slug = $1`, slug).Scan(
+			&article.CreatedAt,
+			&article.UpdatedAt,
+			&article.Title,
+			&article.Excerpt,
+			&article.Author,
+			&article.Status,
+			&article.Content,
+		)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to query article: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to query article: %v\n", err)
+			return
+		}
+
+		t, err := template.New("article").ParseFiles(
+			filepath.Join("views", "layouts", "header.tmpl"),
+			filepath.Join("views", "layouts", "navbar.tmpl"),
+			filepath.Join("views", "layouts", "footer.tmpl"),
+			filepath.Join("views", "articles", "article.tmpl"),
+		)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to parse templates: %v\n", err)
+			return
+		}
+
+		var buf bytes.Buffer
+		if err = goldmark.Convert([]byte(article.Content), &buf); err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse markdown: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to parse markdown: %v\n", err)
+			return
+		}
+		html := buf.String() 
+		
+		buf = bytes.Buffer{}
+		if err = t.Execute(&buf, struct{Article Article; HTML template.HTML}{Article: article, HTML: template.HTML(html)}); err != nil {
+			http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+			log.Printf("[ERROR] failed to execute template: %v\n", err)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(buf.Bytes())
+		return
+	} else {
+		http.Error(w, "failed due to an slug of zero length", http.StatusBadRequest)
+		log.Println("[ERROR] failed due to an slug of zero length")
+		return
+	}
+}
+
 func updateArticle(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie("simple_stack_token")
 	if errors.Is(err, http.ErrNoCookie) {
@@ -364,7 +423,6 @@ func updateArticle(w http.ResponseWriter, r *http.Request) {
 				filepath.Join("views", "layouts", "footer.tmpl"),
 				filepath.Join("views", "admin", "update_article.tmpl"),
 			)
-
 			if err != nil {
 				http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
 				log.Printf("[ERROR] failed to parse templates: %v\n", err)
@@ -556,6 +614,7 @@ func main() {
 	mux.HandleFunc(fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")), admin)
 	mux.HandleFunc("/create/article", createArticle)
 	mux.HandleFunc("/update/article", updateArticle)
+	mux.HandleFunc("/article/", getArticle)
 
 	log.Printf("[INFO] started http server at port %s\n", os.Getenv("PORT"))
 	http.ListenAndServe(os.Getenv("PORT"), mux)
