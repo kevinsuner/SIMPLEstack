@@ -1,25 +1,23 @@
 {{define "articles"}}
 	{{range .Articles}}
-	<div class="card mb-3">
+	<div class="card mb-4">
 		{{if $.IsAdmin}}
 		<div class="card-header">
 			{{if eq .Status "unpublished"}}
-			<a href="#" class="text-light">Publish</a> |
+			<a href="#" class="link-light link-underline-opacity-0">Publish</a> |
 			{{else}}
-			<a href="#" class="text-light">Unpublish</a> |
+			<a href="#" class="link-light link-underline-opacity-0">Unpublish</a> |
 			{{end}}
-			<a href="#" class="text-light">Edit</a> |
-			<a href="#" class="text-light">Delete</a>
+			<a href="#" class="link-light link-underline-opacity-0">Edit</a> |
+			<a href="#" class="link-light link-underline-opacity-0">Delete</a>
 		</div>
 		{{end}}
 		<div class="card-body">
 			<h2>{{.Title}}</h2> 
-			<p>{{.Excerpt}}</p>
-			<p>
-				<small>
-					Published by {{.Author}} on {{.CreatedAt}} {{if .UpdatedAt}}| Updated on {{.UpdatedAt}}{{end}}
-				</small>
-			</p>
+			<p class="mb-1">{{.Excerpt}}</p>
+		</div>
+		<div class="card-footer text-body-secondary">
+			Published by {{.Author}} on {{.CreatedAt.String}} {{if .UpdatedAt.String}}| Updated on {{.UpdatedAt.String}}{{end}}
 		</div>
 	</div>
 	{{else}}
