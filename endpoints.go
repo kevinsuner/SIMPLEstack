@@ -76,7 +76,13 @@ func PutArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", "/dashboard")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(`
+	<div class="alert alert-success" role="alert">
+		<p>¡Hey! The article has been successfully edited</p>
+		<hr>
+		<a href="/dashboard" class="link-success mb-0">Back to Dashboard &#x2192;</a>
+	</div>`))
 }
 
 func PostArticle(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +122,13 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", "/dashboard")
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Write([]byte(`
+	<div class="alert alert-success" role="alert">
+		<p>¡Hooray! A new article has been created</p>
+		<hr>
+		<a href="/dashboard" class="link-success mb-0">Back to Dashboard &#x2192;</a>
+	</div>`))
 }
 
 func GetArticles(w http.ResponseWriter, r *http.Request) {
