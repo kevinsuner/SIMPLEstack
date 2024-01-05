@@ -30,7 +30,7 @@ func DeleteArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", fmt.Sprintf("/%s/dashboard", os.Getenv("ADMIN_URL")))
+	w.Header().Add("HX-Redirect", "/dashboard")
 }
 
 func PutArticle(w http.ResponseWriter, r *http.Request) {
@@ -76,7 +76,7 @@ func PutArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", fmt.Sprintf("/%s/dashboard", os.Getenv("ADMIN_URL")))
+	w.Header().Add("HX-Redirect", "/dashboard")
 }
 
 func PostArticle(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +116,7 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", fmt.Sprintf("/%s/dashboard", os.Getenv("ADMIN_URL")))
+	w.Header().Add("HX-Redirect", "/dashboard")
 }
 
 func GetArticles(w http.ResponseWriter, r *http.Request) {
@@ -214,16 +214,16 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	cookie.HttpOnly = true
 	cookie.Path = "/"
 	http.SetCookie(w, &cookie)
-	w.Header().Add("HX-Redirect", fmt.Sprintf("/%s/dashboard", os.Getenv("ADMIN_URL")))
+	w.Header().Add("HX-Redirect", "/dashboard")
 }
 
 func InitEndpoints(mux *http.ServeMux) {
 	/*** Private **/
-	mux.HandleFunc(fmt.Sprintf("/%s/authenticate", os.Getenv("ADMIN_URL")), Authenticate)
-	mux.Handle(fmt.Sprintf("/%s/post/article", os.Getenv("ADMIN_URL")), CheckCookie(http.HandlerFunc(PostArticle)))
-	mux.Handle(fmt.Sprintf("/%s/put/article", os.Getenv("ADMIN_URL")), CheckCookie(http.HandlerFunc(PutArticle)))
-	mux.Handle(fmt.Sprintf("/%s/delete/article", os.Getenv("ADMIN_URL")), CheckCookie(http.HandlerFunc(DeleteArticle)))
+	mux.Handle("/post/article", CheckCookie(http.HandlerFunc(PostArticle)))
+	mux.Handle("/put/article", CheckCookie(http.HandlerFunc(PutArticle)))
+	mux.Handle("/delete/article", CheckCookie(http.HandlerFunc(DeleteArticle)))
 
 	/*** Public ***/
+	mux.HandleFunc("/authenticate", Authenticate)
 	mux.HandleFunc("/get/articles", GetArticles)
 }

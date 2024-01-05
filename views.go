@@ -35,11 +35,11 @@ func ViewArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := template.New("view_article").ParseFiles(
+	t, err := template.New("article").ParseFiles(
 		filepath.Join("views", "layouts", "header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
-		filepath.Join("views", "articles", "view_article.tmpl"),
+		filepath.Join("views", "articles", "article.tmpl"),
 	)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
@@ -86,11 +86,11 @@ func EditArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t, err := template.New("edit_article").ParseFiles(
+	t, err := template.New("edit").ParseFiles(
 		filepath.Join("views", "layouts", "admin_header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
-		filepath.Join("views", "admin", "edit_article.tmpl"),
+		filepath.Join("views", "articles", "edit.tmpl"),
 	)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
@@ -108,11 +108,11 @@ func EditArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func CreateArticle(w http.ResponseWriter, r *http.Request) {
-	t, err := template.New("create_article").ParseFiles(
+	t, err := template.New("create").ParseFiles(
 		filepath.Join("views", "layouts", "admin_header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
-		filepath.Join("views", "admin", "create_article.tmpl"),
+		filepath.Join("views", "articles", "create.tmpl"),
 	)
 
 	if err != nil {
@@ -131,11 +131,11 @@ func CreateArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminDashboard(w http.ResponseWriter, r *http.Request) {
-	t, err := template.New("admin_dashboard").ParseFiles(
+	t, err := template.New("dashboard").ParseFiles(
 		filepath.Join("views", "layouts", "admin_header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
-		filepath.Join("views", "admin", "admin_dashboard.tmpl"),
+		filepath.Join("views", "admin", "dashboard.tmpl"),
 	)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
@@ -153,11 +153,11 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminLogin(w http.ResponseWriter, r *http.Request) {
-	t, err := template.New("admin_login").ParseFiles(
+	t, err := template.New("login").ParseFiles(
 		filepath.Join("views", "layouts", "admin_header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
-		filepath.Join("views", "admin", "admin_login.tmpl"),
+		filepath.Join("views", "admin", "login.tmpl"),
 	)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
@@ -198,10 +198,10 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 
 func InitViews(mux *http.ServeMux) {
 	/*** Private **/
-	mux.HandleFunc(fmt.Sprintf("/%s/login", os.Getenv("ADMIN_URL")), AdminLogin)
-	mux.Handle(fmt.Sprintf("/%s/dashboard", os.Getenv("ADMIN_URL")), CheckCookie(http.HandlerFunc(AdminDashboard)))
-	mux.Handle(fmt.Sprintf("/%s/create/article", os.Getenv("ADMIN_URL")), CheckCookie(http.HandlerFunc(CreateArticle)))
-	mux.Handle(fmt.Sprintf("/%s/edit/article", os.Getenv("ADMIN_URL")), CheckCookie(http.HandlerFunc(EditArticle)))
+	mux.HandleFunc(fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")), AdminLogin)
+	mux.Handle("/dashboard", CheckCookie(http.HandlerFunc(AdminDashboard)))
+	mux.Handle("/create/article", CheckCookie(http.HandlerFunc(CreateArticle)))
+	mux.Handle("/edit/article", CheckCookie(http.HandlerFunc(EditArticle)))
 
 	/*** Public ***/
 	mux.HandleFunc("/", Homepage)
