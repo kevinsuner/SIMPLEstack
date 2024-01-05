@@ -132,8 +132,9 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetArticles(w http.ResponseWriter, r *http.Request) {
+	// TODO: Need to order by created_at instead of id
 	rows, err := db.Query(
-		`SELECT id, created_at, updated_at, title, slug, excerpt, author, status FROM articles ORDER BY created_at DESC`)
+		`SELECT id, created_at, updated_at, title, slug, excerpt, author, status FROM articles ORDER BY id DESC`)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get articles: %v", err), http.StatusInternalServerError)
 		return
