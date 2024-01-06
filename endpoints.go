@@ -70,7 +70,7 @@ func PutArticle(w http.ResponseWriter, r *http.Request) {
 
 	_, err = db.Exec(
 		`UPDATE articles SET updated_at=$1, title=$2, slug=$3, excerpt=$4, author=$5, status=$6, content=$7 WHERE id = $8`,
-		time.Now().Format(time.ANSIC), title, slug, excerpt, author, status, content, id)
+		time.Now().Format(time.RFC3339), title, slug, excerpt, author, status, content, id)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update article: %v", err), http.StatusInternalServerError)
 		return
@@ -116,7 +116,7 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 
 	_, err := db.Exec(
 		`INSERT INTO articles (created_at, title, slug, excerpt, author, status, content) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		time.Now().Format(time.ANSIC), title, slug, excerpt, author, status, content)
+		time.Now().Format(time.RFC3339), title, slug, excerpt, author, status, content)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to post article: %v", err), http.StatusInternalServerError)
 		return
