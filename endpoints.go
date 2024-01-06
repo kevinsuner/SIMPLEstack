@@ -30,7 +30,7 @@ func DeleteArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Add("HX-Redirect", "/dashboard")
+	w.Header().Add("HX-Redirect", fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")))
 }
 
 func PutArticle(w http.ResponseWriter, r *http.Request) {
@@ -77,12 +77,12 @@ func PutArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`
+	w.Write([]byte(fmt.Sprintf(`
 	<div class="alert alert-success" role="alert">
 		<p>¡Hey! The article has been successfully edited</p>
 		<hr>
-		<a href="/dashboard" class="link-success mb-0">Back to Dashboard &#x2192;</a>
-	</div>`))
+		<a href="/%s" class="link-success mb-0">Back to Dashboard &#x2192;</a>
+	</div>`, os.Getenv("ADMIN_URL"))))
 }
 
 func PostArticle(w http.ResponseWriter, r *http.Request) {
@@ -123,12 +123,12 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write([]byte(`
+	w.Write([]byte(fmt.Sprintf(`
 	<div class="alert alert-success" role="alert">
 		<p>¡Hooray! A new article has been created</p>
 		<hr>
-		<a href="/dashboard" class="link-success mb-0">Back to Dashboard &#x2192;</a>
-	</div>`))
+		<a href="/%s" class="link-success mb-0">Back to Dashboard &#x2192;</a>
+	</div>`, os.Getenv("ADMIN_URL"))))
 }
 
 func GetArticles(w http.ResponseWriter, r *http.Request) {
@@ -227,7 +227,7 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 	cookie.HttpOnly = true
 	cookie.Path = "/"
 	http.SetCookie(w, &cookie)
-	w.Header().Add("HX-Redirect", "/dashboard")
+	w.Header().Add("HX-Redirect", fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")))
 }
 
 func InitEndpoints(mux *http.ServeMux) {

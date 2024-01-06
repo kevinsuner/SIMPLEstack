@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
@@ -131,33 +132,61 @@ func CreateArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminDashboard(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("simple_stack_token")
+	if errors.Is(err, http.ErrNoCookie) {
+		t, err := template.New("login").ParseFiles(
+			filepath.Join("views", "layouts", "admin_header.tmpl"),
+			filepath.Join("views", "layouts", "navbar.tmpl"),
+			filepath.Join("views", "layouts", "footer.tmpl"),
+			filepath.Join("views", "admin", "login.tmpl"),
+		)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		var buf bytes.Buffer
+		if err = t.Execute(&buf, nil); err != nil {
+			http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(buf.Bytes())
+		return
+	} else if err != nil {
+		http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	if cookie.Value != os.Getenv("SIMPLE_STACK_TOKEN") {
+		t, err := template.New("login").ParseFiles(
+			filepath.Join("views", "layouts", "admin_header.tmpl"),
+			filepath.Join("views", "layouts", "navbar.tmpl"),
+			filepath.Join("views", "layouts", "footer.tmpl"),
+			filepath.Join("views", "admin", "login.tmpl"),
+		)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		var buf bytes.Buffer
+		if err = t.Execute(&buf, nil); err != nil {
+			http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		w.Write(buf.Bytes())
+		return
+	}
+
 	t, err := template.New("dashboard").ParseFiles(
 		filepath.Join("views", "layouts", "admin_header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
 		filepath.Join("views", "admin", "dashboard.tmpl"),
-	)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	var buf bytes.Buffer
-	if err = t.Execute(&buf, nil); err != nil {
-		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	w.Write(buf.Bytes())
-}
-
-func AdminLogin(w http.ResponseWriter, r *http.Request) {
-	t, err := template.New("login").ParseFiles(
-		filepath.Join("views", "layouts", "admin_header.tmpl"),
-		filepath.Join("views", "layouts", "navbar.tmpl"),
-		filepath.Join("views", "layouts", "footer.tmpl"),
-		filepath.Join("views", "admin", "login.tmpl"),
 	)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to parse templates: %v", err), http.StatusInternalServerError)
@@ -198,8 +227,7 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 
 func InitViews(mux *http.ServeMux) {
 	/*** Private **/
-	mux.HandleFunc(fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")), AdminLogin)
-	mux.Handle("/dashboard", CheckCookie(http.HandlerFunc(AdminDashboard)))
+	mux.HandleFunc(fmt.Sprintf("/%s", os.Getenv("ADMIN_URL")), AdminDashboard)
 	mux.Handle("/create/article", CheckCookie(http.HandlerFunc(CreateArticle)))
 	mux.Handle("/edit/article", CheckCookie(http.HandlerFunc(EditArticle)))
 
