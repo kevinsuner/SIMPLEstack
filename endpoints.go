@@ -132,8 +132,46 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetArticles(w http.ResponseWriter, r *http.Request) {
-	rows, err := db.Query(
-		`SELECT id, created_at, updated_at, title, slug, excerpt, author, status FROM articles ORDER BY created_at DESC`)
+	var (
+		query string = `
+			SELECT id, created_at, updated_at, title, slug, excerpt, author, status 
+			FROM articles
+			WHERE status = 'published'
+			ORDER BY created_at DESC`
+		isAdmin bool
+	)
+
+	if len(r.URL.Query().Get("admin")) > 0 {
+		val, err := strconv.ParseBool(r.URL.Query().Get("admin"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse bool: %v", err), http.StatusBadRequest)
+			return
+		}
+
+		if val {
+			cookie, err := r.Cookie("simple_stack_token")
+			if errors.Is(err, http.ErrNoCookie) {
+				http.Error(w, fmt.Sprintf("failed to authenticate: %v", err), http.StatusUnauthorized)
+				return
+			} else if err != nil {
+				http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
+				return
+			}
+
+			if cookie.Value != os.Getenv("SIMPLE_STACK_TOKEN") {
+				http.Error(w, fmt.Sprintf("failed to authenticate: %v", invalidToken), http.StatusUnauthorized)
+				return
+			}
+
+			query = `
+				SELECT id, created_at, updated_at, title, slug, excerpt, author, status 
+				FROM articles 
+				ORDER BY created_at DESC`
+			isAdmin = true
+		}
+	}
+
+	rows, err := db.Query(query)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to get articles: %v", err), http.StatusInternalServerError)
 		return
@@ -160,33 +198,6 @@ func GetArticles(w http.ResponseWriter, r *http.Request) {
 	if err = rows.Err(); err != nil {
 		http.Error(w, fmt.Sprintf("failed while iterating: %v", err), http.StatusInternalServerError)
 		return
-	}
-
-	var isAdmin bool
-	if len(r.URL.Query().Get("admin")) > 0 {
-		val, err := strconv.ParseBool(r.URL.Query().Get("admin"))
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to parse bool: %v", err), http.StatusBadRequest)
-			return
-		}
-
-		if val {
-			cookie, err := r.Cookie("simple_stack_token")
-			if errors.Is(err, http.ErrNoCookie) {
-				http.Error(w, fmt.Sprintf("failed to authenticate: %v", err), http.StatusUnauthorized)
-				return
-			} else if err != nil {
-				http.Error(w, fmt.Sprintf("failed to get cookie: %v", err), http.StatusInternalServerError)
-				return
-			}
-
-			if cookie.Value != os.Getenv("SIMPLE_STACK_TOKEN") {
-				http.Error(w, fmt.Sprintf("failed to authenticate: %v", invalidToken), http.StatusUnauthorized)
-				return
-			}
-
-			isAdmin = true
-		}
 	}
 
 	t, err := template.New("articles").ParseFiles(filepath.Join("views", "articles", "articles.tmpl"))
