@@ -80,7 +80,7 @@ Now, to make a change to SIMPLEstack's source:
     ```bash
     git commit -a -v
     ```
-3. Fork RunGo in Github
+3. Fork SIMPLEstack in Github
 4. Add your fork as a new remote (the remote name, "foo" in this example, is arbitrary):
     ```bash
     git remote add git@github.com:USERNAME/SIMPLEstack.git
