@@ -55,22 +55,22 @@ func PutArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		title	string = r.Form.Get("title")
-		slug	string = r.Form.Get("slug")
-		excerpt	string = r.Form.Get("excerpt")
-		author	string = r.Form.Get("author")
-		status	string = r.Form.Get("status")
-		content	string = r.Form.Get("content")
+		title			string = r.Form.Get("title")
+		slug			string = r.Form.Get("slug")
+		description		string = r.Form.Get("description")
+		author			string = r.Form.Get("author")
+		status			string = r.Form.Get("status")
+		content			string = r.Form.Get("content")
 	)
 
-	if err = isEmpty(title, slug, excerpt, author, status, content); err != nil {
+	if err = isEmpty(title, slug, description, author, status, content); err != nil {
 		http.Error(w, fmt.Sprintf("failed to validate form values: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	_, err = db.Exec(
-		`UPDATE articles SET updated_at=$1, title=$2, slug=$3, excerpt=$4, author=$5, status=$6, content=$7 WHERE id = $8`,
-		time.Now().Format(time.RFC3339), title, slug, excerpt, author, status, content, id)
+		`UPDATE articles SET updated_at=$1, title=$2, slug=$3, description=$4, author=$5, status=$6, content=$7 WHERE id = $8`,
+		time.Now().Format(time.RFC3339), title, slug, description, author, status, content, id)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to update article: %v", err), http.StatusInternalServerError)
 		return
@@ -101,22 +101,22 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var (
-		title	string = r.Form.Get("title")
-		slug	string = r.Form.Get("slug")
-		excerpt	string = r.Form.Get("excerpt")
-		author	string = r.Form.Get("author")
-		status	string = r.Form.Get("status")
-		content	string = r.Form.Get("content")
+		title			string = r.Form.Get("title")
+		slug			string = r.Form.Get("slug")
+		description		string = r.Form.Get("description")
+		author			string = r.Form.Get("author")
+		status			string = r.Form.Get("status")
+		content			string = r.Form.Get("content")
 	)
 
-	if err := isEmpty(title, slug, excerpt, author, status, content); err != nil {
+	if err := isEmpty(title, slug, description, author, status, content); err != nil {
 		http.Error(w, fmt.Sprintf("failed to validate form values: %v", err), http.StatusBadRequest)
 		return
 	}
 
 	_, err := db.Exec(
-		`INSERT INTO articles (created_at, title, slug, excerpt, author, status, content) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-		time.Now().Format(time.RFC3339), title, slug, excerpt, author, status, content)
+		`INSERT INTO articles (created_at, title, slug, description, author, status, content) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		time.Now().Format(time.RFC3339), title, slug, description, author, status, content)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to post article: %v", err), http.StatusInternalServerError)
 		return
@@ -134,7 +134,7 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 func GetArticles(w http.ResponseWriter, r *http.Request) {
 	var (
 		query string = `
-			SELECT id, created_at, updated_at, title, slug, excerpt, author, status 
+			SELECT id, created_at, updated_at, title, slug, description, author, status 
 			FROM articles
 			WHERE status = 'published'
 			ORDER BY created_at DESC`
@@ -164,7 +164,7 @@ func GetArticles(w http.ResponseWriter, r *http.Request) {
 			}
 
 			query = `
-				SELECT id, created_at, updated_at, title, slug, excerpt, author, status 
+				SELECT id, created_at, updated_at, title, slug, description, author, status 
 				FROM articles 
 				ORDER BY created_at DESC`
 			isAdmin = true
@@ -187,7 +187,7 @@ func GetArticles(w http.ResponseWriter, r *http.Request) {
 			&article.UpdatedAt,
 			&article.Title,
 			&article.Slug,
-			&article.Excerpt,
+			&article.Description,
 			&article.Author,
 			&article.Status); err != nil {
 			http.Error(w, fmt.Sprintf("failed to scan value: %v", err), http.StatusInternalServerError)

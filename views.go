@@ -23,11 +23,11 @@ func ViewArticle(w http.ResponseWriter, r *http.Request) {
 
 	var article Article
 	err := db.QueryRow(
-		`SELECT created_at, updated_at, title, excerpt, author, status, content FROM articles WHERE slug = $1`, slug).Scan(
+		`SELECT created_at, updated_at, title, description, author, status, content FROM articles WHERE slug = $1`, slug).Scan(
 		&article.CreatedAt,
 		&article.UpdatedAt,
 		&article.Title,
-		&article.Excerpt,
+		&article.Description,
 		&article.Author,
 		&article.Status,
 		&article.Content)
@@ -57,7 +57,7 @@ func ViewArticle(w http.ResponseWriter, r *http.Request) {
 	buf = bytes.Buffer{}
 	templateData := TemplateData{
 		Meta: Meta{
-			Description: article.Excerpt,
+			Description: article.Description,
 			Author: article.Author,
 			Type: "article",
 			URL: os.Getenv("BASE_URL"),
@@ -85,11 +85,11 @@ func EditArticle(w http.ResponseWriter, r *http.Request) {
 
 	var article Article
 	err = db.QueryRow(
-		`SELECT id, title, slug, excerpt, author, status, content FROM articles WHERE id = $1`, id).Scan(
+		`SELECT id, title, slug, description, author, status, content FROM articles WHERE id = $1`, id).Scan(
 		&article.ID,
 		&article.Title,
 		&article.Slug,
-		&article.Excerpt,
+		&article.Description,
 		&article.Author,
 		&article.Status,
 		&article.Content)

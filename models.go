@@ -11,7 +11,7 @@ type Article struct {
 	UpdatedAt sql.NullString
 	Title string
 	Slug string
-	Excerpt string
+	Description string
 	Author string
 	Status string
 	Content string

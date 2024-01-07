@@ -26,7 +26,7 @@
 		{{end}}
 		<div class="card-body">
 			<h2><a href="/article/{{.Slug}}" class="link-light link-underline-opacity-0">{{.Title}}</a></h2> 
-			<p class="mb-1">{{.Excerpt}}</p>
+			<p class="mb-1">{{.Description}}</p>
 		</div>
 		<div class="card-footer text-body-secondary">
 			Published by {{.Author}} on {{.CreatedAt.String}} {{if .UpdatedAt.String}}| Updated on {{.UpdatedAt.String}}{{end}}
