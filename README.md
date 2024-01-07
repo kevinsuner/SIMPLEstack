@@ -9,7 +9,7 @@ SIMPLEstack is a free and simplistic [content management system](https://en.wiki
 ---
 
 <p align="center">
-    <kbd><img src="https://i.postimg.cc/6pzBvCKx/simplestack-screenshot.png" alt="SIMPLEstack Screenshot" title="SIMPLEstack Screenshot"/></kbd>
+    <kbd><img src="https://i.postimg.cc/wjfbnYsZ/simplestack-screenshot.png" alt="SIMPLEstack Screenshot" title="SIMPLEstack Screenshot"/></kbd>
 </p>
 
 ---
@@ -22,7 +22,7 @@ new tools was a lot of added complexity.
 
 Not long after that I decided to focus solely on the back-end side of things, even though I liked (and still like) the front-end. Fast-forward to this day and apparently we've come full circle and realized that maybe??? all of this complexity wasn't needed (or even desirable) and that sending plain html to the client instead of JSON works for a lot of use cases.
 
-After seeing this sort of back-to-basics movement that started to emerge in the tech community, I decided that I wanted to work on a full-stack web application again, just not with PHP nor Javascript but Go. Thanks to [ThePrimeagen](https://www.youtube.com/channel/UC8ENHE5xdFSwx71u3fDH5Xw) I discovered [HTMX](https://htmx.org) and from there SIMPLEstack was born as well as my desire to work on the front-end :) 
+After seeing this sort of back-to-basics movement that started to emerge in the tech community, I decided that I wanted to work on a full-stack web application again, just not with PHP nor Javascript but Go. Thanks to [ThePrimeagen](https://www.youtube.com/channel/UC8ENHE5xdFSwx71u3fDH5Xw) I discovered [HTMX](https://htmx.org) and from there SIMPLEstack was born and my desire to work on the front-end resurrected :) 
 
 **NOTE**: In any way I underappreciate the effort that a lot of people way smarter than me have put in developing these new frameworks, but they just aren't for me, I prefer a more "rudimental" approach, that all. 
 
