@@ -132,12 +132,23 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetArticles(w http.ResponseWriter, r *http.Request) {
+	var err error
+	var offset int = 0
+	if len(r.URL.Query().Get("offset")) > 0 {
+		offset, err = strconv.Atoi(r.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to parse int: %v", err), http.StatusBadRequest)
+			return
+		}
+	}
+
 	var (
-		query string = `
+		query string = fmt.Sprintf(`
 			SELECT id, created_at, updated_at, title, slug, description, author, status 
 			FROM articles
 			WHERE status = 'published'
-			ORDER BY created_at DESC`
+			ORDER BY created_at DESC
+			LIMIT %d OFFSET %d`, ARTICLES_LIMIT, offset) 
 		isAdmin bool
 	)
 
@@ -163,10 +174,11 @@ func GetArticles(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			query = `
+			query = fmt.Sprintf(`
 				SELECT id, created_at, updated_at, title, slug, description, author, status 
-				FROM articles 
-				ORDER BY created_at DESC`
+				FROM articles
+				ORDER BY created_at DESC
+				LIMIT %d OFFSET %d`, ARTICLES_LIMIT, offset)
 			isAdmin = true
 		}
 	}

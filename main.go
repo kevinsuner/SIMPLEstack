@@ -11,6 +11,8 @@ import (
 	_ "github.com/lib/pq"
 )
 
+const ARTICLES_LIMIT uint = 3
+
 var db *sql.DB
 
 func init() {

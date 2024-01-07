@@ -215,6 +215,29 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func Homepage(w http.ResponseWriter, r *http.Request) {
+	var totalArticles uint
+	err := db.QueryRow(`
+		SELECT COUNT(id) as total_articles FROM articles WHERE status = 'published'`).Scan(&totalArticles)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to scan value: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var pagination []Pagination
+	if totalArticles > ARTICLES_LIMIT {
+		if (totalArticles % ARTICLES_LIMIT) != 0 {
+			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT + 1)
+			for i := range pagination {
+				pagination[i].Offset = i * int(ARTICLES_LIMIT)
+			}
+		} else {
+			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT)
+			for i := range pagination {
+				pagination[i].Offset = i * int(ARTICLES_LIMIT)
+			}
+		}
+	}
+
 	t, err := template.New("homepage").ParseFiles(
 		filepath.Join("views", "layouts", "header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
@@ -227,12 +250,14 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	templateData := TemplateData{Meta: Meta{
-		Description: "unimplemented!",
-		Author: "Kevin Suñer",
-		Type: "website",
-		URL: fmt.Sprintf("https://%s", r.Host),
-		Title: "Home | SIMPLEstack"}}
+	templateData := TemplateData{
+		Meta: Meta{
+			Description: "unimplemented!",
+			Author: "Kevin Suñer",
+			Type: "website",
+			URL: fmt.Sprintf("https://%s", r.Host),
+			Title: "Home | SIMPLEstack"},
+		Pagination: pagination}
 
 	if err = t.Execute(&buf, templateData); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
