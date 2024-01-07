@@ -60,7 +60,7 @@ func ViewArticle(w http.ResponseWriter, r *http.Request) {
 			Description: article.Description,
 			Author: article.Author,
 			Type: "article",
-			URL: os.Getenv("BASE_URL"),
+			URL: fmt.Sprintf("https://%s", r.Host),
 			Title: fmt.Sprintf("%s | SIMPLEstack", article.Title),
 			CreatedAt: article.CreatedAt.String,
 			UpdatedAt: article.UpdatedAt.String,},
@@ -231,7 +231,7 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 		Description: "unimplemented!",
 		Author: "Kevin Suñer",
 		Type: "website",
-		URL: os.Getenv("BASE_URL"),
+		URL: fmt.Sprintf("https://%s", r.Host),
 		Title: "Home | SIMPLEstack"}}
 
 	if err = t.Execute(&buf, templateData); err != nil {
