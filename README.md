@@ -9,7 +9,7 @@ SIMPLEstack is a free and simplistic [content management system](https://en.wiki
 ---
 
 <p align="center">
-    <kbd><img src="https://i.postimg.cc/wjfbnYsZ/simplestack-screenshot.png" alt="SIMPLEstack Screenshot" title="SIMPLEstack Screenshot"/></kbd>
+    <kbd><img src="https://i.postimg.cc/02jfSZnx/simplestack-screenshot.png" alt="SIMPLEstack Screenshot" title="SIMPLEstack Screenshot"/></kbd>
 </p>
 
 ---
