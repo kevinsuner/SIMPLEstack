@@ -193,6 +193,29 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	var totalArticles uint
+	err = db.QueryRow(`
+		SELECT COUNT(id) as total_articles FROM articles WHERE status = 'published'`).Scan(&totalArticles)
+	if err != nil {
+		http.Error(w, fmt.Sprintf("failed to scan value: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	var pagination []Pagination
+	if totalArticles > ARTICLES_LIMIT {
+		if (totalArticles % ARTICLES_LIMIT) != 0 {
+			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT + 1)
+			for i := range pagination {
+				pagination[i].Offset = i * int(ARTICLES_LIMIT)
+			}
+		} else {
+			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT)
+			for i := range pagination {
+				pagination[i].Offset = i * int(ARTICLES_LIMIT)
+			}
+		}
+	}
+
 	t, err := template.New("dashboard").ParseFiles(
 		filepath.Join("views", "layouts", "admin_header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
@@ -205,7 +228,9 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	if err = t.Execute(&buf, nil); err != nil {
+	templateData := TemplateData{Pagination: pagination}
+
+	if err = t.Execute(&buf, templateData); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
