@@ -193,30 +193,15 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var totalArticles uint
-	err = db.QueryRow(`
-		SELECT COUNT(id) as total_articles FROM articles WHERE status = 'published'`).Scan(&totalArticles)
+	var pages int
+	err = db.QueryRow(fmt.Sprintf(`
+		SELECT COUNT(id) / %d as pages FROM articles`, ARTICLES_LIMIT)).Scan(&pages)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to scan value: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	var pagination []Pagination
-	if totalArticles > ARTICLES_LIMIT {
-		if (totalArticles % ARTICLES_LIMIT) != 0 {
-			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT + 1)
-			for i := range pagination {
-				pagination[i].Offset = i * int(ARTICLES_LIMIT)
-			}
-		} else {
-			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT)
-			for i := range pagination {
-				pagination[i].Offset = i * int(ARTICLES_LIMIT)
-			}
-		}
-	}
-
-	t, err := template.New("dashboard").ParseFiles(
+	t, err := template.New("dashboard").Funcs(templateFuncs).ParseFiles(
 		filepath.Join("views", "layouts", "admin_header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
@@ -228,7 +213,7 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	templateData := TemplateData{Pagination: pagination}
+	templateData := TemplateData{Pages: pages}
 
 	if err = t.Execute(&buf, templateData); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
@@ -240,30 +225,15 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 }
 
 func Homepage(w http.ResponseWriter, r *http.Request) {
-	var totalArticles uint
-	err := db.QueryRow(`
-		SELECT COUNT(id) as total_articles FROM articles WHERE status = 'published'`).Scan(&totalArticles)
+	var pages int
+	err := db.QueryRow(fmt.Sprintf(`
+		SELECT COUNT(id) / %d as pages FROM articles WHERE status = 'published'`, ARTICLES_LIMIT)).Scan(&pages)
 	if err != nil {
 		http.Error(w, fmt.Sprintf("failed to scan value: %v", err), http.StatusInternalServerError)
 		return
 	}
 
-	var pagination []Pagination
-	if totalArticles > ARTICLES_LIMIT {
-		if (totalArticles % ARTICLES_LIMIT) != 0 {
-			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT + 1)
-			for i := range pagination {
-				pagination[i].Offset = i * int(ARTICLES_LIMIT)
-			}
-		} else {
-			pagination = make([]Pagination, totalArticles / ARTICLES_LIMIT)
-			for i := range pagination {
-				pagination[i].Offset = i * int(ARTICLES_LIMIT)
-			}
-		}
-	}
-
-	t, err := template.New("homepage").ParseFiles(
+	t, err := template.New("homepage").Funcs(templateFuncs).ParseFiles(
 		filepath.Join("views", "layouts", "header.tmpl"),
 		filepath.Join("views", "layouts", "navbar.tmpl"),
 		filepath.Join("views", "layouts", "footer.tmpl"),
@@ -282,7 +252,7 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 			Type: "website",
 			URL: fmt.Sprintf("https://%s", r.Host),
 			Title: "Home | SIMPLEstack"},
-		Pagination: pagination}
+		Pages: pages}
 
 	if err = t.Execute(&buf, templateData); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)

@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	"os"
@@ -11,9 +12,21 @@ import (
 	_ "github.com/lib/pq"
 )
 
-const ARTICLES_LIMIT uint = 3
+const ARTICLES_LIMIT int = 3
 
 var db *sql.DB
+
+var templateFuncs = template.FuncMap{
+	"Iterate": func(count int) []int {
+		var numbers []int
+		for i := 0; i <= count; i++ {
+			numbers = append(numbers, i)
+		}
+		return numbers
+	},
+	"Offset": func(num int) int {
+		return num * ARTICLES_LIMIT
+	}}
 
 func init() {
 	err := godotenv.Load()

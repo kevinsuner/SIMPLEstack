@@ -27,15 +27,11 @@ type Meta struct {
 	UpdatedAt string
 }
 
-type Pagination struct {
-	Offset int
-}
-
 type TemplateData struct {
 	Meta Meta
 	Article Article
 	Articles []Article
-	Pagination []Pagination
 	HTML template.HTML
 	IsAdmin bool
+	Pages int
 }
