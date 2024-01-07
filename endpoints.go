@@ -207,8 +207,11 @@ func GetArticles(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	data := struct{Articles []Article; IsAdmin bool}{Articles: articles, IsAdmin: isAdmin}
-	if err = t.Execute(&buf, data); err != nil {
+	templateData := TemplateData{
+		Articles: articles,
+		IsAdmin: isAdmin}
+
+	if err = t.Execute(&buf, templateData); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}

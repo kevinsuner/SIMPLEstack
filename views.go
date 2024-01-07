@@ -55,8 +55,19 @@ func ViewArticle(w http.ResponseWriter, r *http.Request) {
 	html := buf.String() 
 
 	buf = bytes.Buffer{}
-	data := struct{Article Article; HTML template.HTML}{Article: article, HTML: template.HTML(html)}
-	if err = t.Execute(&buf, data); err != nil {
+	templateData := TemplateData{
+		Meta: Meta{
+			Description: article.Excerpt,
+			Author: article.Author,
+			Type: "article",
+			URL: os.Getenv("BASE_URL"),
+			Title: fmt.Sprintf("%s | SIMPLEstack", article.Title),
+			CreatedAt: article.CreatedAt.String,
+			UpdatedAt: article.UpdatedAt.String,},
+		Article: article,
+		HTML: template.HTML(html)}
+
+	if err = t.Execute(&buf, templateData); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -216,7 +227,14 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	if err = t.Execute(&buf, nil); err != nil {
+	templateData := TemplateData{Meta: Meta{
+		Description: "unimplemented!",
+		Author: "Kevin Suñer",
+		Type: "website",
+		URL: os.Getenv("BASE_URL"),
+		Title: "Home | SIMPLEstack"}}
+
+	if err = t.Execute(&buf, templateData); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
