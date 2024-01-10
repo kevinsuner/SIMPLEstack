@@ -105,3 +105,4 @@ SIMPLEstack makes use of a variety of open-source projects including:
 - [github.com/joho/godotenv](https://github.com/joho/godotenv)
 - [github.com/lib/pq](https://github.com/lib/pq)
 - [github.com/yuin/goldmark](https://github.com/yuin/goldmark)
+- [github.com/twbs/bootstrap](https://github.com/twbs/bootstrap)
