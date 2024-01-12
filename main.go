@@ -15,11 +15,10 @@ import (
 const ARTICLES_LIMIT int = 3
 
 var db *sql.DB
-
 var templateFuncs = template.FuncMap{
 	"Iterate": func(count int) []int {
 		var numbers []int
-		for i := 0; i <= count; i++ {
+		for i := 0; i < count; i++ {
 			numbers = append(numbers, i)
 		}
 		return numbers
