@@ -17,7 +17,7 @@ import (
 func ViewArticle(w http.ResponseWriter, r *http.Request) {
 	slug := strings.TrimPrefix(r.URL.Path, "/article/")
 	if len(slug) < 0 {
-		http.Error(w, fmt.Sprintf("failed to trim slug: %v", emptyString), http.StatusBadRequest)
+		http.Error(w, fmt.Sprintf("failed to trim slug: %v", errEmptyString), http.StatusBadRequest)
 		return
 	}
 
@@ -143,7 +143,7 @@ func CreateArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func AdminDashboard(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("simple_stack_token")
+	cookie, err := r.Cookie("admin_token")
 	if errors.Is(err, http.ErrNoCookie) {
 		t, err := template.New("login").ParseFiles(
 			filepath.Join("views", "layouts", "admin_header.tmpl"),
@@ -170,7 +170,7 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if cookie.Value != os.Getenv("SIMPLE_STACK_TOKEN") {
+	if cookie.Value != os.Getenv("ADMIN_TOKEN") {
 		t, err := template.New("login").ParseFiles(
 			filepath.Join("views", "layouts", "admin_header.tmpl"),
 			filepath.Join("views", "layouts", "navbar.tmpl"),

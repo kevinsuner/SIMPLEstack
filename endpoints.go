@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	emptyString			error = errors.New("empty string")
-	invalidCredentials	error = errors.New("invalid username or password")
+	errEmptyString			error = errors.New("empty string")
+	errInvalidCredentials	error = errors.New("invalid username or password")
 )
 
 func DeleteArticle(w http.ResponseWriter, r *http.Request) {
@@ -45,15 +45,6 @@ func PutArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isEmpty := func(str ...string) error {
-		for _, s := range str {
-			if len(s) == 0 {
-				return emptyString
-			}
-		}
-		return nil
-	}
-
 	var (
 		title			string = r.Form.Get("title")
 		slug			string = r.Form.Get("slug")
@@ -63,7 +54,7 @@ func PutArticle(w http.ResponseWriter, r *http.Request) {
 		content			string = r.Form.Get("content")
 	)
 
-	if err = isEmpty(title, slug, description, author, status, content); err != nil {
+	if err = checkEmptyString(title, slug, description, author, status, content); err != nil {
 		http.Error(w, fmt.Sprintf("failed to validate form values: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -91,15 +82,6 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	isEmpty := func(str ...string) error {
-		for _, s := range str {
-			if len(s) == 0 {
-				return emptyString
-			}
-		}
-		return nil
-	}
-
 	var (
 		title			string = r.Form.Get("title")
 		slug			string = r.Form.Get("slug")
@@ -109,7 +91,7 @@ func PostArticle(w http.ResponseWriter, r *http.Request) {
 		content			string = r.Form.Get("content")
 	)
 
-	if err := isEmpty(title, slug, description, author, status, content); err != nil {
+	if err := checkEmptyString(title, slug, description, author, status, content); err != nil {
 		http.Error(w, fmt.Sprintf("failed to validate form values: %v", err), http.StatusBadRequest)
 		return
 	}
@@ -160,7 +142,7 @@ func GetArticles(w http.ResponseWriter, r *http.Request) {
 		}
 
 		if val {
-			cookie, err := r.Cookie("simple_stack_token")
+			cookie, err := r.Cookie("admin_token")
 			if errors.Is(err, http.ErrNoCookie) {
 				http.Error(w, fmt.Sprintf("failed to authenticate: %v", err), http.StatusUnauthorized)
 				return
@@ -169,7 +151,7 @@ func GetArticles(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			if cookie.Value != os.Getenv("SIMPLE_STACK_TOKEN") {
+			if cookie.Value != os.Getenv("ADMIN_TOKEN") {
 				http.Error(w, fmt.Sprintf("failed to authenticate: %v", invalidToken), http.StatusUnauthorized)
 				return
 			}
@@ -238,15 +220,15 @@ func Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if r.Form.Get("username") != os.Getenv("USER_NAME") ||
-		r.Form.Get("password") != os.Getenv("USER_PASS") {
-		http.Error(w, fmt.Sprintf("failed to authenticate: %v", invalidCredentials), http.StatusUnauthorized)
+	if r.Form.Get("username") != os.Getenv("ADMIN_USER") ||
+		r.Form.Get("password") != os.Getenv("ADMIN_PASS") {
+		http.Error(w, fmt.Sprintf("failed to authenticate: %v", errInvalidCredentials), http.StatusUnauthorized)
 		return
 	}
 
 	cookie := http.Cookie{}
-	cookie.Name = "simple_stack_token"
-	cookie.Value = os.Getenv("SIMPLE_STACK_TOKEN")
+	cookie.Name = "admin_token"
+	cookie.Value = os.Getenv("ADMIN_TOKEN")
 	cookie.Expires = time.Now().Add(time.Hour * 1)
 	cookie.Secure = true
 	cookie.HttpOnly = true
