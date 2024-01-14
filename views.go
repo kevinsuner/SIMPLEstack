@@ -56,19 +56,19 @@ func ViewArticle(w http.ResponseWriter, r *http.Request) {
 	html := buf.String() 
 
 	buf = bytes.Buffer{}
-	templateData := TemplateData{
-		Meta: Meta{
+	if err = t.Execute(&buf, map[string]interface{}{
+		"meta": Meta{
 			Description: article.Description,
 			Author: article.Author,
 			Type: "article",
-			URL: fmt.Sprintf("https://%s", r.Host),
+			URL: "https://"+r.Host,
 			Title: fmt.Sprintf("%s | SIMPLEstack", article.Title),
 			CreatedAt: article.CreatedAt.String,
-			UpdatedAt: article.UpdatedAt.String,},
-		Article: article,
-		HTML: template.HTML(html)}
-
-	if err = t.Execute(&buf, templateData); err != nil {
+			UpdatedAt: article.UpdatedAt.String,
+		},
+		"article": article,
+		"html": template.HTML(html),
+	}); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -111,7 +111,9 @@ func EditArticle(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	if err = t.Execute(&buf, article); err != nil {
+	if err = t.Execute(&buf, map[string]interface{}{
+		"article": article,
+	}); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -214,9 +216,9 @@ func AdminDashboard(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	templateData := TemplateData{Pages: int(math.Ceil(pages))}
-
-	if err = t.Execute(&buf, templateData); err != nil {
+	if err = t.Execute(&buf, map[string]interface{}{
+		"pages": int(math.Ceil(pages)),
+	}); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -246,16 +248,16 @@ func Homepage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	templateData := TemplateData{
-		Meta: Meta{
+	if err = t.Execute(&buf, map[string]interface{}{
+		"meta": Meta{
 			Description: "unimplemented!",
 			Author: "Kevin Suñer",
 			Type: "website",
-			URL: fmt.Sprintf("https://%s", r.Host),
-			Title: "Home | SIMPLEstack"},
-		Pages: int(math.Ceil(pages))}
-
-	if err = t.Execute(&buf, templateData); err != nil {
+			URL: "https://%s"+r.Host,
+			Title: "Home | SIMPLEstack",
+		},
+		"pages": int(math.Ceil(pages)),
+	}); err != nil {
 		http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
 		return
 	}
